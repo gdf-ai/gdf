@@ -1,6 +1,6 @@
 # gdf — Distributed Federated LLM Training
 
-A volunteer GPU compute network. People contribute their GPUs to collectively train language models, and anyone can chat with the results.
+A community-powered GPU compute network. People contribute their GPUs to collectively train language models, and anyone can chat with the results.
 
 Two commands define the experience:
 
@@ -33,7 +33,7 @@ To move from local testing to a real deployment:
 
 1. Run the hub on a server with a public IP
 2. Edit `models.json` — change `hub_url` to your server's address and set a real `token`
-3. Share `gdf contribute` with volunteers
+3. Share `gdf contribute` with your community
 
 ## Install
 
@@ -124,7 +124,7 @@ When you use `gdf chat` without specifying a model, the router automatically pic
 
 **Hub** — coordination server that collects contributions and merges them. Anyone can run one with `gdf hub`.
 
-**Peer** — a volunteer GPU. Pulls the latest model, trains on web data, pushes only what changed (delta compression).
+**Peer** — a community GPU. Pulls the latest model, trains on web data, pushes only what changed (delta compression).
 
 **Registry** — a JSON file on GitHub listing available models, their hub URLs, and public tokens. Cached locally for 1 hour.
 
