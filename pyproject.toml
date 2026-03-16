@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gdf"
+version = "0.1.0"
+description = "Distributed Federated LLM Training"
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "click",
+]
+
+[project.scripts]
+gdf = "gdf.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

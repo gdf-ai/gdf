@@ -1,0 +1,40 @@
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+*.pt
+chunks/
+.gdf/
+
+# Data files
+*.txt
+*.csv
+*.sql
+*.sqlite
+*.log
+
+# Secrets / certs
+.env*
+*.pem
+*.key
+*.cert
+*.p12
+
+# Claude
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# GDF runtime
+peer_chunks/

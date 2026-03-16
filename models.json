@@ -1,0 +1,10 @@
+[
+  {
+    "name": "general",
+    "description": "General-purpose language model",
+    "hub_url": "http://localhost:7677",
+    "token": "local-dev",
+    "size": "~1MB",
+    "status": "active"
+  }
+]
