@@ -29,11 +29,15 @@ echo "==> Downloading seeds..."
 sudo -u gdf curl -sL "https://raw.githubusercontent.com/gdf-ai/gdf/main/seeds.txt" \
     -o /opt/gdf/seeds.txt
 
+echo "==> Installing boto3 for S3 backups..."
+python3.11 -m pip install boto3
+
 echo "==> Writing environment file..."
 sudo tee /opt/gdf/.env > /dev/null <<EOF
 GDF_TOKEN=${TOKEN}
 GDF_HUB_URL=https://hub.gdf.ai
 GDF_HUB_TOKEN=${TOKEN}
+GDF_S3_BUCKET=gdf-model-backups
 EOF
 sudo chmod 600 /opt/gdf/.env
 sudo chown gdf:gdf /opt/gdf/.env

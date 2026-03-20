@@ -7,7 +7,7 @@ Type=simple
 User=gdf
 WorkingDirectory=/opt/gdf
 EnvironmentFile=/opt/gdf/.env
-ExecStart=/usr/local/bin/gdf hub --model /opt/gdf/hub_model.pt --token ${GDF_TOKEN}
+ExecStart=/usr/local/bin/gdf hub --model /opt/gdf/hub_model.pt --token ${GDF_TOKEN} --seeds /opt/gdf/seeds.txt --s3-bucket ${GDF_S3_BUCKET}
 Restart=always
 RestartSec=5
 

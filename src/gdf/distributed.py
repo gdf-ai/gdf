@@ -46,6 +46,8 @@ from typing import Callable
 import urllib.request
 import urllib.error
 
+import logging
+
 import torch
 
 from .model import TinyTransformer, ModelConfig
@@ -164,6 +166,9 @@ class Hub:
         parent_hub: str | None = None,
         push_to_parent_every: int = 5,
         seeds_file: str | None = None,
+        s3_bucket: str | None = None,
+        s3_prefix: str = "models/",
+        s3_backup_every: int = 1,
     ):
         self.model_path = model_path
         self.merge_strategy = merge_strategy
@@ -173,6 +178,9 @@ class Hub:
         self.token = token or generate_token()
         self.parent_hub = parent_hub
         self.push_to_parent_every = push_to_parent_every
+        self.s3_bucket = s3_bucket
+        self.s3_prefix = s3_prefix.rstrip("/") + "/"
+        self.s3_backup_every = s3_backup_every
 
         self.peers: dict[str, PeerInfo] = {}
         self.pending_deltas: list[tuple[str, bytes]] = []
@@ -214,6 +222,30 @@ class Hub:
             self._manifest = create_chunks(self.model_path, self._chunks_dir)
         except Exception:
             self._base_weights = None
+
+    def _backup_to_s3(self) -> None:
+        """Upload the current model to S3 as a versioned snapshot + latest."""
+        if not self.s3_bucket:
+            return
+        try:
+            import boto3
+            s3 = boto3.client("s3")
+            model_bytes = Path(self.model_path).read_bytes()
+            model_name = Path(self.model_path).name
+
+            # Upload versioned snapshot: models/hub_model_gen_005.pt
+            gen_key = f"{self.s3_prefix}{Path(model_name).stem}_gen_{self.generation:05d}.pt"
+            s3.put_object(Bucket=self.s3_bucket, Key=gen_key, Body=model_bytes)
+
+            # Upload latest: models/hub_model_latest.pt
+            latest_key = f"{self.s3_prefix}{Path(model_name).stem}_latest.pt"
+            s3.put_object(Bucket=self.s3_bucket, Key=latest_key, Body=model_bytes)
+
+            self._log(f"    S3 backup: s3://{self.s3_bucket}/{gen_key}")
+        except ImportError:
+            self._log("    S3 backup skipped: boto3 not installed")
+        except Exception as e:
+            self._log(f"    S3 backup failed: {e}")
 
     def _log(self, msg: str) -> None:
         if self._on_log:
@@ -657,6 +689,10 @@ class Hub:
 
         self._log(f"    Merged! Gen {self.generation} "
                   f"({merged.count_parameters():,} params, hash={new_hash})")
+
+        # S3 backup
+        if self.s3_bucket and self.generation % self.s3_backup_every == 0:
+            self._backup_to_s3()
 
         # Push to parent hub if configured
         if self.parent_hub:

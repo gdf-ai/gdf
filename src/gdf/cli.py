@@ -475,9 +475,16 @@ def status():
               help="Auth token (env: GDF_HUB_TOKEN, auto-generated if not set)")
 @click.option("--parent", default=None, help="Parent hub URL (for hierarchy)")
 @click.option("--seeds", default=None, help="Text file with seed URLs (one per line)")
+@click.option("--s3-bucket", default=None, envvar="GDF_S3_BUCKET",
+              help="S3 bucket for model backups (env: GDF_S3_BUCKET)")
+@click.option("--s3-prefix", default="models/",
+              help="S3 key prefix for backups (default: models/)")
+@click.option("--s3-backup-every", default=1,
+              help="Back up to S3 every N merges (default: every merge)")
 def hub(model: str, port: int, host: str, merge_every: int,
         strategy: str, token: str | None, parent: str | None,
-        seeds: str | None):
+        seeds: str | None, s3_bucket: str | None, s3_prefix: str,
+        s3_backup_every: int):
     """Run a distributed training hub.
 
     Deploy this on a VPS/cloud server so peers can connect
@@ -487,6 +494,7 @@ def hub(model: str, port: int, host: str, merge_every: int,
     Examples:
       gdf hub --model general.pt
       gdf hub --model general.pt --seeds urls.txt
+      gdf hub --model general.pt --s3-bucket my-gdf-backups
       gdf hub --model general.pt --token mysecret
     """
     if not Path(model).exists():
@@ -513,6 +521,9 @@ def hub(model: str, port: int, host: str, merge_every: int,
         token=token,
         parent_hub=parent,
         seeds_file=seeds,
+        s3_bucket=s3_bucket,
+        s3_prefix=s3_prefix,
+        s3_backup_every=s3_backup_every,
     )
 
     # Detect real IP addresses
@@ -536,6 +547,8 @@ def hub(model: str, port: int, host: str, merge_every: int,
     click.echo(f"  Listening: {host}:{port}")
     if parent:
         click.echo(f"  Parent hub: {parent}")
+    if s3_bucket:
+        click.echo(f"  S3 backup: s3://{s3_bucket}/{s3_prefix} (every {s3_backup_every} merge(s))")
     click.echo()
     click.echo(f"  TOKEN: {h.token}")
     click.echo()
