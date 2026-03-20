@@ -1,0 +1,6 @@
+hub.gdf.ai {
+    reverse_proxy localhost:7677
+    log {
+        output file /var/log/caddy/access.log
+    }
+}

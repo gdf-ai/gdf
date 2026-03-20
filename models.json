@@ -2,8 +2,8 @@
   {
     "name": "general",
     "description": "General-purpose language model",
-    "hub_url": "http://localhost:7677",
-    "token": "local-dev",
+    "hub_url": "https://hub.gdf.ai",
+    "token": "b80a36291f25ce1534dde34c67a7fa08c55663fccb6a697307ecc3863b366cfc",
     "size": "~1MB",
     "status": "active"
   }

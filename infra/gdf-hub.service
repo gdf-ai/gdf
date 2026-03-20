@@ -1,0 +1,15 @@
+[Unit]
+Description=GDF Hub Server
+After=network.target
+
+[Service]
+Type=simple
+User=gdf
+WorkingDirectory=/opt/gdf
+EnvironmentFile=/opt/gdf/.env
+ExecStart=/usr/local/bin/gdf hub --model /opt/gdf/hub_model.pt --token ${GDF_TOKEN}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

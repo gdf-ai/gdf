@@ -5,31 +5,45 @@ from __future__ import annotations
 import re
 import urllib.request
 import urllib.error
+import urllib.parse
 
 
-def fetch_url(url: str, timeout: int = 30) -> str:
-    """Fetch a URL and return extracted text content."""
+def fetch_url_raw(url: str, timeout: int = 30) -> tuple[str, str]:
+    """Fetch a URL and return (raw_html, extracted_text).
+
+    Useful when the caller needs the raw HTML (e.g. for link extraction)
+    AND the cleaned text for training.
+    """
     req = urllib.request.Request(url, headers={
         "User-Agent": "gdf/0.1 (text-fetcher)",
         "Accept": "text/html,text/plain,*/*",
     })
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         content_type = resp.headers.get("Content-Type", "")
-        raw = resp.read()
+        raw_bytes = resp.read()
 
     # Detect encoding
     encoding = "utf-8"
     if "charset=" in content_type:
         encoding = content_type.split("charset=")[-1].split(";")[0].strip()
 
-    text = raw.decode(encoding, errors="replace")
+    raw_html = raw_bytes.decode(encoding, errors="replace")
 
     # If HTML, extract text
-    if "html" in content_type.lower() or text.strip().startswith("<!") or "<html" in text[:500].lower():
-        text = html_to_text(text)
+    is_html = ("html" in content_type.lower()
+               or raw_html.strip().startswith("<!")
+               or "<html" in raw_html[:500].lower())
+    if is_html:
+        text = _clean_text(html_to_text(raw_html))
+    else:
+        text = _clean_text(raw_html)
 
-    # Clean up
-    text = _clean_text(text)
+    return raw_html, text
+
+
+def fetch_url(url: str, timeout: int = 30) -> str:
+    """Fetch a URL and return extracted text content."""
+    _, text = fetch_url_raw(url, timeout=timeout)
     return text
 
 
@@ -80,6 +94,70 @@ def _clean_text(text: str) -> str:
         cleaned.append(line)
 
     return '\n'.join(cleaned)
+
+
+# Extensions to skip when extracting links (non-content resources)
+_SKIP_EXTENSIONS = {
+    ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".ico", ".webp",
+    ".zip", ".tar", ".gz", ".bz2", ".7z", ".rar",
+    ".mp3", ".mp4", ".avi", ".mkv", ".wav", ".ogg",
+    ".exe", ".msi", ".dmg", ".deb", ".rpm",
+    ".css", ".js", ".woff", ".woff2", ".ttf", ".eot",
+}
+
+
+def extract_links(html: str, base_url: str, same_domain_only: bool = True) -> list[str]:
+    """Extract links from HTML.
+
+    Args:
+        html: Raw HTML string.
+        base_url: The URL of the page (used to resolve relative links).
+        same_domain_only: If True (default), only return links on the same domain.
+            If False, return all http/https links.
+
+    Returns:
+        Deduplicated list of absolute URLs.
+    """
+    parsed_base = urllib.parse.urlparse(base_url)
+    base_domain = parsed_base.netloc.lower()
+
+    # Find all href attributes
+    hrefs = re.findall(r'<a\s[^>]*href=["\']([^"\']+)["\']', html, re.IGNORECASE)
+
+    seen: set[str] = set()
+    links: list[str] = []
+
+    for href in hrefs:
+        # Skip anchors, javascript, mailto
+        if href.startswith(("#", "javascript:", "mailto:", "tel:")):
+            continue
+
+        # Resolve relative URLs
+        absolute = urllib.parse.urljoin(base_url, href)
+
+        # Strip fragment
+        absolute = urllib.parse.urldefrag(absolute)[0]
+
+        parsed = urllib.parse.urlparse(absolute)
+
+        # Must be http/https
+        if parsed.scheme not in ("http", "https"):
+            continue
+
+        # Same domain filter
+        if same_domain_only and parsed.netloc.lower() != base_domain:
+            continue
+
+        # Skip non-content extensions
+        path_lower = parsed.path.lower()
+        if any(path_lower.endswith(ext) for ext in _SKIP_EXTENSIONS):
+            continue
+
+        if absolute not in seen:
+            seen.add(absolute)
+            links.append(absolute)
+
+    return links
 
 
 def is_url(s: str) -> bool:

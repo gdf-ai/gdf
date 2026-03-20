@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import io
 import json
+import random
 import time
 import zlib
 import hashlib
@@ -162,6 +163,7 @@ class Hub:
         token: str | None = None,        # auth token (auto-generated if None)
         parent_hub: str | None = None,
         push_to_parent_every: int = 5,
+        seeds_file: str | None = None,
     ):
         self.model_path = model_path
         self.merge_strategy = merge_strategy
@@ -188,6 +190,17 @@ class Hub:
         self._tracker = Tracker()
         self._chunks_dir = str(Path(model_path).parent / "chunks")
         self._manifest: Manifest | None = None
+
+        # Seed URLs for peer assignment (peers crawl autonomously)
+        self._seed_urls: list[str] = []
+        if seeds_file:
+            try:
+                for line in Path(seeds_file).read_text().strip().splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        self._seed_urls.append(line)
+            except Exception:
+                pass
 
         # Cache the base model weights for delta computation
         self._base_weights: dict | None = None
@@ -258,6 +271,8 @@ class Hub:
                     hub._handle_push_full(self)
                 elif self.path == "/delta":
                     hub._handle_push_delta(self)
+                elif self.path == "/text":
+                    hub._handle_push_text(self)
                 elif self.path == "/register":
                     hub._handle_register(self)
                 elif self.path == "/tracker/register":
@@ -420,6 +435,12 @@ class Hub:
                 vram_gb=vram,
             )
 
+        # Pick a seed URL for this peer + send the full pool for reseeding
+        if self._seed_urls:
+            seed_url = random.choice(self._seed_urls)
+        else:
+            seed_url = "https://en.wikipedia.org/wiki/Special:Random"
+
         self._log(f"  Peer registered: {peer_id} ({gpu_name or dev.get('device', 'cpu')}, {vram}GB)")
 
         handler.send_response(200)
@@ -428,6 +449,8 @@ class Hub:
         handler.wfile.write(json.dumps({
             "status": "registered",
             "generation": self.generation,
+            "seed_url": seed_url,
+            "reseed_urls": self._seed_urls,
         }).encode())
 
     def _handle_status(self, handler) -> None:
@@ -525,6 +548,52 @@ class Hub:
         handler.send_header("Content-Type", "application/json")
         handler.end_headers()
         handler.wfile.write(json.dumps({"status": "registered"}).encode())
+
+    def _handle_push_text(self, handler) -> None:
+        """Peer pushes training text — hub trains on it directly."""
+        content_length = int(handler.headers.get("Content-Length", 0))
+        body = json.loads(handler.rfile.read(content_length).decode())
+        peer_id = body.get("peer_id", "unknown")
+        text = body.get("text", "")
+        source = body.get("source", "unknown")
+
+        if not text or len(text.strip()) < 10:
+            handler.send_response(400)
+            handler.send_header("Content-Type", "application/json")
+            handler.end_headers()
+            handler.wfile.write(json.dumps({"status": "rejected", "reason": "text too short"}).encode())
+            return
+
+        try:
+            from .api import GDFModel
+            bm = GDFModel.load(self.model_path)
+            bm.train_text(text, epochs=3)
+            bm.save(self.model_path)
+        except Exception as e:
+            self._log(f"  Training on text from {peer_id} failed: {e}")
+            handler.send_response(500)
+            handler.send_header("Content-Type", "application/json")
+            handler.end_headers()
+            handler.wfile.write(json.dumps({"status": "error", "reason": str(e)}).encode())
+            return
+
+        with self._lock:
+            self.generation += 1
+
+            if peer_id in self.peers:
+                self.peers[peer_id].contributions += 1
+                self.peers[peer_id].last_seen = time.time()
+
+        self._log(f"  <- Text from {peer_id} ({len(text):,} chars, source: {source})")
+
+        handler.send_response(200)
+        handler.send_header("Content-Type", "application/json")
+        handler.end_headers()
+        handler.wfile.write(json.dumps({
+            "status": "ok",
+            "text_length": len(text),
+            "generation": self.generation,
+        }).encode())
 
     def _do_merge(self) -> None:
         """Merge all pending contributions with the global model."""
@@ -654,7 +723,7 @@ class Peer:
         return hashlib.sha256(f"{hostname}-{time.time()}".encode()).hexdigest()[:12]
 
     def register(self) -> dict:
-        """Register with the hub."""
+        """Register with the hub. Stores the seed_url for autonomous crawling."""
         from .device import device_info
         body = json.dumps({
             "peer_id": self.peer_id,
@@ -668,7 +737,10 @@ class Peer:
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode())
+            result = json.loads(resp.read().decode())
+
+        self.seed_url = result.get("seed_url", "https://en.wikipedia.org/wiki/Special:Random")
+        return result
 
     def pull_model(self) -> tuple[str, dict]:
         """Pull the latest model from the hub.
@@ -864,6 +936,27 @@ class Peer:
         result["bytes_sent"] = len(model_bytes)
         return result
 
+    def push_text(self, text: str, source: str = "unknown") -> dict:
+        """Push training text to the hub (hub trains on it)."""
+        body = json.dumps({
+            "peer_id": self.peer_id,
+            "text": text,
+            "source": source,
+        }).encode()
+
+        req = urllib.request.Request(
+            f"{self.hub_url}/text",
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "Content-Length": str(len(body)),
+                **self._auth_headers(),
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            return json.loads(resp.read().decode())
+
     def hub_status(self) -> dict:
         """Get the hub's current status."""
         req = urllib.request.Request(f"{self.hub_url}/status", headers=self._auth_headers())
@@ -874,50 +967,71 @@ class Peer:
         self,
         cycles: int = 5,
         on_status: Callable[[str], None] | None = None,
+        topics: list[str] | None = None,
     ) -> dict:
-        """Full workflow: pull → train → push.
+        """Crawl text and push to hub for training.
 
         Args:
-            cycles: Number of autolearn cycles before pushing.
+            cycles: Number of articles to fetch and send.
             on_status: Status callback.
+            topics: Optional topic list for Wikipedia fetching.
 
         Returns:
             Dict with results.
         """
-        from .api import GDFModel
-        from .selflearn import SelfLearner, SelfLearnConfig
+        from .selflearn import fetch_wikipedia_random, fetch_wikipedia_topic
 
         def status(msg: str):
             if on_status:
                 on_status(msg)
 
-        # 1. Pull
-        status("Pulling latest model from hub...")
-        _, pull_info = self.pull_model()
-        bm = GDFModel.load(self.local_model_path)
-        status(f"  Got model gen {pull_info['generation']} "
-               f"({pull_info['params']:,} params, {pull_info['size_bytes']:,} bytes)")
+        articles_sent = 0
+        total_chars = 0
+        topic_idx = 0
 
-        # 2. Train
-        status(f"Training for {cycles} cycles...")
-        config = SelfLearnConfig(max_cycles=cycles)
-        learner = SelfLearner(bm, config)
-        learner.run(
-            save_path=self.local_model_path,
-            on_status=on_status,
-        )
+        for i in range(cycles):
+            # Pick topic
+            topic = None
+            if topics:
+                topic = topics[topic_idx % len(topics)]
+                topic_idx += 1
 
-        # 3. Push (with delta compression)
-        status("Pushing updates to hub...")
-        result = self.push_model()
-        transfer = result.get("transfer_type", "unknown")
-        if transfer == "delta":
-            comp = result.get("compression", {})
-            status(f"  Sent delta: {comp.get('delta_bytes', 0):,} bytes "
-                   f"({comp.get('savings_pct', 0):.0f}% smaller than full model)")
-        else:
-            status(f"  Sent full model: {result.get('bytes_sent', 0):,} bytes")
+            # Fetch
+            status(f"  Cycle {i + 1}/{cycles}: Fetching...")
+            try:
+                if topic:
+                    articles = fetch_wikipedia_topic(topic)
+                    if articles:
+                        title, text = articles[0]
+                    else:
+                        title, text = fetch_wikipedia_random()
+                else:
+                    title, text = fetch_wikipedia_random()
+            except Exception as e:
+                status(f"  Fetch failed: {e}")
+                continue
 
-        summary = learner.summary()
-        summary["push_result"] = result
-        return summary
+            if len(text.strip()) < 50:
+                status(f"  Skipping '{title}' — too short")
+                continue
+
+            # Truncate very long articles
+            if len(text) > 50000:
+                text = text[:50000]
+
+            # Push text to hub
+            status(f"  Sending '{title}' ({len(text):,} chars)...")
+            try:
+                result = self.push_text(text, source=f"wikipedia:{title}")
+                gen = result.get("generation", "?")
+                status(f"  Accepted. Hub generation: {gen}")
+                articles_sent += 1
+                total_chars += len(text)
+            except Exception as e:
+                status(f"  Push failed: {e}")
+
+        return {
+            "cycles": cycles,
+            "articles_sent": articles_sent,
+            "total_chars": total_chars,
+        }

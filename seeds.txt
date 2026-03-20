@@ -1,0 +1,181 @@
+# =============================================================================
+# GDF Seed URLs — diverse starting points for autonomous crawling
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Wikipedia — broad topic portals and deep articles across many fields
+# -----------------------------------------------------------------------------
+https://en.wikipedia.org/wiki/Portal:Science
+https://en.wikipedia.org/wiki/Portal:History
+https://en.wikipedia.org/wiki/Portal:Mathematics
+https://en.wikipedia.org/wiki/Portal:Technology
+https://en.wikipedia.org/wiki/Portal:Geography
+https://en.wikipedia.org/wiki/Portal:Arts
+https://en.wikipedia.org/wiki/Portal:Philosophy
+https://en.wikipedia.org/wiki/Portal:Society
+https://en.wikipedia.org/wiki/Portal:Biography
+https://en.wikipedia.org/wiki/Portal:Medicine
+https://en.wikipedia.org/wiki/General_relativity
+https://en.wikipedia.org/wiki/Quantum_mechanics
+https://en.wikipedia.org/wiki/Evolution
+https://en.wikipedia.org/wiki/Photosynthesis
+https://en.wikipedia.org/wiki/Cell_(biology)
+https://en.wikipedia.org/wiki/DNA
+https://en.wikipedia.org/wiki/Climate_change
+https://en.wikipedia.org/wiki/Plate_tectonics
+https://en.wikipedia.org/wiki/Renaissance
+https://en.wikipedia.org/wiki/Industrial_Revolution
+https://en.wikipedia.org/wiki/Ancient_Rome
+https://en.wikipedia.org/wiki/Byzantine_Empire
+https://en.wikipedia.org/wiki/Silk_Road
+https://en.wikipedia.org/wiki/History_of_mathematics
+https://en.wikipedia.org/wiki/Machine_learning
+https://en.wikipedia.org/wiki/Compiler
+https://en.wikipedia.org/wiki/Operating_system
+https://en.wikipedia.org/wiki/Computer_network
+https://en.wikipedia.org/wiki/Algorithm
+https://en.wikipedia.org/wiki/Cryptography
+https://en.wikipedia.org/wiki/Human_rights
+https://en.wikipedia.org/wiki/International_law
+https://en.wikipedia.org/wiki/Philosophy_of_mind
+https://en.wikipedia.org/wiki/Ethics
+https://en.wikipedia.org/wiki/Linguistics
+https://en.wikipedia.org/wiki/Classical_music
+https://en.wikipedia.org/wiki/History_of_painting
+https://en.wikipedia.org/wiki/Shakespeare
+https://en.wikipedia.org/wiki/Solar_System
+https://en.wikipedia.org/wiki/Periodic_table
+
+# -----------------------------------------------------------------------------
+# Education — MIT OCW, Khan Academy, university course pages
+# -----------------------------------------------------------------------------
+https://ocw.mit.edu/courses/mathematics/
+https://ocw.mit.edu/courses/physics/
+https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/
+https://ocw.mit.edu/courses/chemistry/
+https://ocw.mit.edu/courses/biology/
+https://ocw.mit.edu/courses/economics/
+https://www.khanacademy.org/science
+https://www.khanacademy.org/math
+https://www.khanacademy.org/humanities
+https://www.khanacademy.org/computing
+https://online.stanford.edu/explore
+https://oyc.yale.edu/courses
+https://www.coursera.org/browse
+https://www.edx.org/learn
+
+# -----------------------------------------------------------------------------
+# Science and Technology
+# -----------------------------------------------------------------------------
+https://www.nasa.gov/topics/universe/index.html
+https://science.nasa.gov/solar-system/
+https://home.cern/science
+https://home.cern/science/physics/standard-model
+https://arxiv.org/list/cs.AI/recent
+https://arxiv.org/list/physics/recent
+https://arxiv.org/list/math/recent
+https://developer.mozilla.org/en-US/docs/Web
+https://developer.mozilla.org/en-US/docs/Learn
+https://www.nature.com/subjects
+https://www.scientificamerican.com/
+https://www.smithsonianmag.com/science-nature/
+https://www.space.com/science
+https://phys.org/
+https://www.quantamagazine.org/
+
+# -----------------------------------------------------------------------------
+# Government and Reference
+# -----------------------------------------------------------------------------
+https://www.cia.gov/the-world-factbook/
+https://www.loc.gov/collections/
+https://www.loc.gov/topics/
+https://www.nist.gov/topics
+https://www.energy.gov/science/office-science
+https://www.nsf.gov/news/
+https://www.usgs.gov/science
+https://www.noaa.gov/education
+https://www.archives.gov/research
+https://www.bls.gov/ooh/
+https://www.census.gov/topics.html
+https://www.epa.gov/environmental-topics
+https://data.gov/
+
+# -----------------------------------------------------------------------------
+# Health and Medicine
+# -----------------------------------------------------------------------------
+https://www.who.int/health-topics
+https://www.cdc.gov/health-topics.html
+https://medlineplus.gov/healthtopics.html
+https://www.nih.gov/health-information
+https://www.ncbi.nlm.nih.gov/books/
+https://www.mayoclinic.org/diseases-conditions
+https://www.hopkinsmedicine.org/health/conditions-and-diseases
+
+# -----------------------------------------------------------------------------
+# Literature and Humanities
+# -----------------------------------------------------------------------------
+https://plato.stanford.edu/contents.html
+https://plato.stanford.edu/entries/epistemology/
+https://plato.stanford.edu/entries/logic-classical/
+https://plato.stanford.edu/entries/consciousness/
+https://plato.stanford.edu/entries/artificial-intelligence/
+https://www.gutenberg.org/browse/scores/top
+https://www.gutenberg.org/browse/categories/1
+https://www.poetryfoundation.org/poems
+https://www.poetryfoundation.org/poets
+https://www.bl.uk/discovering-literature
+https://publicdomainreview.org/collections/
+https://www.sacred-texts.com/index.htm
+
+# -----------------------------------------------------------------------------
+# News and Current Affairs (article index pages)
+# -----------------------------------------------------------------------------
+https://www.bbc.com/news/science_and_environment
+https://www.bbc.com/news/technology
+https://www.reuters.com/science/
+https://www.reuters.com/technology/
+https://apnews.com/hub/science
+https://apnews.com/hub/technology
+https://www.npr.org/sections/science/
+https://www.pbs.org/newshour/science
+
+# -----------------------------------------------------------------------------
+# Law
+# -----------------------------------------------------------------------------
+https://www.law.cornell.edu/wex
+https://www.law.cornell.edu/supremecourt/text
+https://www.law.cornell.edu/uscode
+https://www.law.cornell.edu/constitution
+
+# -----------------------------------------------------------------------------
+# Mathematics and Computer Science
+# -----------------------------------------------------------------------------
+https://mathworld.wolfram.com/
+https://mathworld.wolfram.com/topics/Algebra.html
+https://mathworld.wolfram.com/topics/NumberTheory.html
+https://mathworld.wolfram.com/topics/Geometry.html
+https://oeis.org/
+https://brilliant.org/wiki/
+https://cses.fi/problemset/
+https://cp-algorithms.com/
+https://www.geeksforgeeks.org/fundamentals-of-algorithms/
+https://docs.python.org/3/tutorial/
+https://doc.rust-lang.org/book/
+
+# -----------------------------------------------------------------------------
+# Geography and Environment
+# -----------------------------------------------------------------------------
+https://www.nationalgeographic.com/environment/
+https://www.nationalgeographic.com/science/
+https://earthobservatory.nasa.gov/
+https://www.worldwildlife.org/habitats
+https://www.britannica.com/browse/Geography-Travel
+
+# -----------------------------------------------------------------------------
+# Arts and Culture
+# -----------------------------------------------------------------------------
+https://www.metmuseum.org/art/collection
+https://artsandculture.google.com/
+https://www.nga.gov/collection.html
+https://www.britannica.com/browse/Art
+https://www.imdb.com/chart/top/

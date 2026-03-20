@@ -9,7 +9,6 @@ chunks/
 .gdf/
 
 # Data files
-*.txt
 *.csv
 *.sql
 *.sqlite

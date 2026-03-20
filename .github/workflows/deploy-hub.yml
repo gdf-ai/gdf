@@ -1,0 +1,39 @@
+name: Deploy GDF Hub
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/gdf/**"
+      - "infra/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to hub
+        env:
+          HUB_SSH_KEY: ${{ secrets.HUB_SSH_KEY }}
+          HUB_IP: ${{ secrets.HUB_IP }}
+        run: |
+          # Write SSH key
+          mkdir -p ~/.ssh
+          echo "$HUB_SSH_KEY" > ~/.ssh/hub_key
+          chmod 600 ~/.ssh/hub_key
+
+          # Disable host key checking for automation
+          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/hub_key"
+
+          # Upgrade GDF and restart
+          ssh $SSH_OPTS ec2-user@"$HUB_IP" << 'REMOTE'
+            set -euo pipefail
+            sudo python3.11 -m pip install --upgrade gdf
+            sudo systemctl restart gdf-hub
+            sleep 2
+            sudo systemctl is-active gdf-hub
+            echo "Deploy complete — hub restarted successfully"
+          REMOTE
