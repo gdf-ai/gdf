@@ -247,8 +247,16 @@ def autonomous_crawl(
     import random as _random
 
     seeds_pool = list(reseed_urls) if reseed_urls else list(DEFAULT_RESEED_URLS)
+    _random.shuffle(seeds_pool)
     visited: set[str] = set()
-    queue: deque[str] = deque([seed_url])
+    # Prime the queue with the seed + several diverse sources so we don't
+    # get trapped on a single domain (e.g. Wikipedia linking to Wikipedia)
+    initial_seeds = [seed_url] + _random.sample(
+        seeds_pool, min(5, len(seeds_pool))
+    )
+    queue: deque[str] = deque(initial_seeds)
+    pages_since_inject = 0
+    inject_every = 3  # inject a fresh diverse seed every N pages
 
     def _pick_reseed() -> str:
         """Pick a random reseed URL from the pool, or fall back to Wikipedia."""
@@ -268,7 +276,7 @@ def autonomous_crawl(
         if len(visited) > max_visited:
             visited.clear()
             queue.clear()
-            queue.append(_pick_reseed())
+            queue.extend(_random.sample(seeds_pool, min(5, len(seeds_pool))))
             continue
 
         url = queue.popleft()
@@ -282,14 +290,20 @@ def autonomous_crawl(
         except Exception:
             continue
 
-        # Extract and enqueue links
+        # Extract and enqueue same-domain links (follow depth on current site)
         try:
-            links = extract_links(raw_html, url, same_domain_only=False)
-            for link in links:
+            links = extract_links(raw_html, url, same_domain_only=True)
+            for link in links[:10]:  # limit per-page links to avoid domain flooding
                 if link not in visited:
                     queue.append(link)
         except Exception:
             pass
+
+        # Periodically inject a diverse seed so we don't stay on one domain
+        pages_since_inject += 1
+        if pages_since_inject >= inject_every:
+            queue.appendleft(_pick_reseed())
+            pages_since_inject = 0
 
         # Yield if enough text
         text = text.strip()

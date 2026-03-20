@@ -163,16 +163,19 @@ def contribute(model_name: str | None, push_every: int, epochs: int):
 
     bm = GDFModel.load(peer.local_model_path)
 
-    seed_url = reg.get("seed_url", "https://en.wikipedia.org/wiki/Special:Random")
     reseed_urls = reg.get("reseed_urls", [])
+    if not reseed_urls:
+        from .crawler import DEFAULT_RESEED_URLS
+        reseed_urls = list(DEFAULT_RESEED_URLS)
+
+    # Use a diverse seed instead of whatever the hub gave us (usually Wikipedia)
+    import random as _random
+    seed_url = _random.choice(reseed_urls)
+
     click.echo()
     click.echo("  Contributing. Press Ctrl+C to stop.")
     click.echo(f"  Seed: {seed_url}")
-    if reseed_urls:
-        click.echo(f"  Reseed pool: {len(reseed_urls)} sources (from hub)")
-    else:
-        from .crawler import DEFAULT_RESEED_URLS
-        click.echo(f"  Reseed pool: {len(DEFAULT_RESEED_URLS)} built-in sources")
+    click.echo(f"  Source pool: {len(reseed_urls)} diverse sources")
     click.echo()
 
     # Ctrl+C handler
